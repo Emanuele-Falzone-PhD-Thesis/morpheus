@@ -1,0 +1,14 @@
+language: shell
+os: linux
+
+services:
+  - docker
+
+branches:
+  only:
+    - master
+
+script:
+  - echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  - docker build -t ${DOCKER_USERNAME}/morpheus:${TRAVIS_COMMIT:0:8} .
+  - docker push ${DOCKER_USERNAME}/morpheus:${TRAVIS_COMMIT:0:8}
