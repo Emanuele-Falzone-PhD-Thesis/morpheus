@@ -6,7 +6,7 @@ services:
   - docker
 
 env:
-  - IMAGE_NAME=morpheus README_FILEPATH:="./README.md"
+  - IMAGE_NAME=morpheus README_FILEPATH="./README.md"
 
 branches:
   only:
