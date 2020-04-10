@@ -1,14 +1,28 @@
-language: shell
 os: linux
+dist: xenial
+language: shell
 
 services:
   - docker
+
+env:
+  - IMAGE_NAME=morpheus
 
 branches:
   only:
     - master
 
+before_script:
+  - if [ -z "$IMAGE_NAME" ]; then echo "Must set IMAGE_NAME" && exit 1 ; fi
+  - if [ -z "$DOCKER_USERNAME" ]; then echo "Must set DOCKER_USERNAME" && exit 1 ; fi
+  - if [ -z "$DOCKER_TOKEN" ]; then echo "Must set DOCKER_TOKEN" && exit 1 ; fi
+
 script:
+  - docker build -t ${IMAGE_NAME} . 
+
+after_script:
   - echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USERNAME" --password-stdin
-  - docker build -t ${DOCKER_USERNAME}/morpheus:${TRAVIS_COMMIT:0:8} .
-  - docker push ${DOCKER_USERNAME}/morpheus:${TRAVIS_COMMIT:0:8}
+  - docker tag ${IMAGE_NAME} ${DOCKER_USERNAME}/${IMAGE_NAME}:${TRAVIS_COMMIT:0:8}
+  - docker push ${DOCKER_USERNAME}/${IMAGE_NAME}:${TRAVIS_COMMIT:0:8}
+  - docker tag ${IMAGE_NAME} ${DOCKER_USERNAME}/${IMAGE_NAME}:latest
+  - docker push ${DOCKER_USERNAME}/${IMAGE_NAME}:latest
