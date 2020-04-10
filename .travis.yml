@@ -7,6 +7,7 @@ services:
 
 env:
   - IMAGE_NAME=morpheus
+  - README_FILEPATH:="./README.md"
 
 branches:
   only:
@@ -20,9 +21,17 @@ before_script:
 script:
   - docker build -t ${IMAGE_NAME} . 
 
-after_script:
+after_success:
   - echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USERNAME" --password-stdin
   - docker tag ${IMAGE_NAME} ${DOCKER_USERNAME}/${IMAGE_NAME}:${TRAVIS_COMMIT:0:8}
   - docker push ${DOCKER_USERNAME}/${IMAGE_NAME}:${TRAVIS_COMMIT:0:8}
   - docker tag ${IMAGE_NAME} ${DOCKER_USERNAME}/${IMAGE_NAME}:latest
   - docker push ${DOCKER_USERNAME}/${IMAGE_NAME}:latest
+
+after_script:
+  - if [ $(wc -c <${README_FILEPATH}) -gt 25000 ]; then echo "File size exceeds the maximum allowed 25000 bytes" && exit 1 ; fi
+  - LOGIN_PAYLOAD="{\"username\":\"${DOCKER_USERNAME}\", \"password\":\"${DOCKER_TOKEN}\"}"
+  - TOKEN=$(curl -s -H "Content-Type:application/json" -X POST -d ${LOGIN_PAYLOAD} https://hub.docker.com/v2/users/login/ | jq -r .token)
+  - REPO_URL="https://hub.docker.com/v2/repositories/${IMAGE_NAME}/"
+  - RESPONSE_CODE=$(curl -s --write-out %{response_code} --output /dev/null -H "Authorization:JWT ${TOKEN}" -X PATCH --data-urlencode full_description@${README_FILEPATH} ${REPO_URL})
+  - if [ ! $RESPONSE_CODE -eq 200 ]; then exit 1 ; fi
